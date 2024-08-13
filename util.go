@@ -38,9 +38,9 @@ func (d *App) readDefinitionFile(path string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		return d.loader.ReadWithEnvBytes([]byte(jsonStr))
+		return d.loader.ReadWithEnvBytes([]byte(jsonStr), d.config.Env)
 	}
-	return d.loader.ReadWithEnv(path)
+	return d.loader.ReadWithEnv(path, d.config.Env)
 }
 
 func parseTags(s string) ([]types.Tag, error) {

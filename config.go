@@ -49,6 +49,45 @@ func newConfigLoader(extStr, extCode map[string]string) *configLoader {
 	}
 }
 
+func (c *configLoader) withExtraEnvSet(
+	extraEnv map[string]string,
+	f func() ([]byte, error),
+) ([]byte, error) {
+	if extraEnv != nil {
+		oldValues := make(map[string]interface{})
+		for k, v := range extraEnv {
+			if ov, ok := os.LookupEnv(k); ok {
+				oldValues[k] = ov
+			} else {
+				oldValues[k] = nil
+			}
+			os.Setenv(k, v)
+		}
+		defer func() {
+			for k, v := range oldValues {
+				if v == nil {
+					os.Unsetenv(k)
+				} else {
+					os.Setenv(k, v.(string))
+				}
+			}
+		}()
+	}
+	return f()
+}
+
+func (c *configLoader) ReadWithEnv(configPath string, extraEnv map[string]string) ([]byte, error) {
+	return c.withExtraEnvSet(extraEnv, func() ([]byte, error) {
+		return c.Loader.ReadWithEnv(configPath)
+	})
+}
+
+func (c *configLoader) ReadWithEnvBytes(b []byte, extraEnv map[string]string) ([]byte, error) {
+	return c.withExtraEnvSet(extraEnv, func() ([]byte, error) {
+		return c.Loader.ReadWithEnvBytes(b)
+	})
+}
+
 // Config represents a configuration.
 type Config struct {
 	RequiredVersion       string            `yaml:"required_version,omitempty" json:"required_version,omitempty"`
@@ -63,6 +102,7 @@ type Config struct {
 	Timeout               *Duration         `yaml:"timeout,omitempty" json:"timeout,omitempty"`
 	CodeDeploy            *ConfigCodeDeploy `yaml:"codedeploy,omitempty" json:"codedeploy,omitempty"`
 	Ignore                *ConfigIgnore     `yaml:"ignore,omitempty" json:"ignore,omitempty"`
+	Env                   map[string]string `yaml:"env,omitempty" json:"env,ignore,omitempty"`
 
 	path               string
 	templateFuncs      []template.FuncMap
@@ -83,7 +123,7 @@ func (l *configLoader) Load(ctx context.Context, path string, version string) (*
 	ext := filepath.Ext(path)
 	switch ext {
 	case ymlExt, yamlExt:
-		b, err := l.ReadWithEnv(path)
+		b, err := l.ReadWithEnv(path, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +135,7 @@ func (l *configLoader) Load(ctx context.Context, path string, version string) (*
 		if err != nil {
 			return nil, fmt.Errorf("failed to evaluate jsonnet file: %w", err)
 		}
-		b, err := l.ReadWithEnvBytes([]byte(jsonStr))
+		b, err := l.ReadWithEnvBytes([]byte(jsonStr), nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read template file: %w", err)
 		}
