@@ -1,5 +1,7 @@
 # Changelog
 
+## [v0.0.1](https://github.com/moriyoshi/ecspresso/commits/v0.0.1) - 2025-12-18
+
 ## [v2.7.0](https://github.com/kayac/ecspresso/compare/v2.6.5...v2.7.0) - 2025-12-13
 - Docker image by @fujiwara in https://github.com/kayac/ecspresso/pull/913
 - release docker images by @fujiwara in https://github.com/kayac/ecspresso/pull/915
